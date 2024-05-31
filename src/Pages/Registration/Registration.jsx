@@ -1,15 +1,20 @@
 import Swal from "sweetalert2";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useContext, useState } from "react";
 import { FaRegEye, FaRegEyeSlash } from "react-icons/fa";
 import { updateProfile } from "firebase/auth";
 import { FaRegHandPointDown } from "react-icons/fa";
 import { AuthContext } from "../../provides/AuthProvide";
+import useAxiosPublic from "../../hooks/useAxiosPublic";
+import { data } from "autoprefixer";
+import axios from "axios";
 
 const Register = () => {
   const { createUser, user, myTheme, logOut } = useContext(AuthContext);
   const [passData, setPassData] = useState("");
   const [showPass, setShowPass] = useState("");
+  const nevigate = useNavigate();
+  const axiosPublic = useAxiosPublic();
 
   const handleInput = (e) => {
     setPassData(e.target.value);
@@ -55,11 +60,19 @@ const Register = () => {
           photoURL: photo,
         })
           .then(() => {
-            // console.log("Profile Updated");
-            // console.log("Creaetd user : ", userCredential);
-            Swal.fire("Registration Successful");
-            logOut();
-            form.reset();
+            const userInfo = {
+              name: res.user.displayName,
+              email: res.user.email,
+            };
+            console.log("user info", userInfo);
+            axiosPublic.post("/users", userInfo).then((res) => {
+              if (res.data.insertedId) {
+                console.log("user added to db");
+                Swal.fire("Registration Successful");
+                logOut();
+                form.reset();
+              }
+            });
           })
           .catch((err) => {
             // console.log("Error while updating profile: ", err);

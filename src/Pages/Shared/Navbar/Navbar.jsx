@@ -1,12 +1,20 @@
 import React, { useContext } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { AuthContext } from "../../../provides/AuthProvide";
+import Swal from "sweetalert2";
+import { IoCartOutline } from "react-icons/io5";
+import useCart from "../../../hooks/useCart";
 
 const Navbar = () => {
-  const { user, logout } = useContext(AuthContext);
+  const { user, logOut } = useContext(AuthContext);
+  
+  const [cart] = useCart();
+  console.log("User in nav:", user);
   const handleLogout = () => {
-    logout()
-      .then(() => {})
+    logOut()
+      .then(() => {
+        Swal.fire("Logged Out Successfully");
+      })
       .catch((err) => {
         console.log("Error during logout:", err);
       });
@@ -78,16 +86,42 @@ const Navbar = () => {
               {/* initially it would show salad */}
               <NavLink to="/order/salad">Order</NavLink>
             </li>{" "}
-            <li>
-              <NavLink to="/login">Login</NavLink>
-            </li>
-            <li>
-              <NavLink to="/register">Register</NavLink>
-            </li>
+            {user ? (
+              <li>
+                <button
+                  className="text-red-700 font-semibold"
+                  onClick={handleLogout}
+                  to="/register"
+                >
+                  Logout
+                </button>
+              </li>
+            ) : (
+              <>
+                <li>
+                  <NavLink to="/login">Login</NavLink>
+                </li>
+                <li>
+                  <NavLink to="/register">Register</NavLink>
+                </li>
+              </>
+            )}
           </ul>
         </div>
         <div className="navbar-end">
-          <a className="btn">Get Started</a>
+          {user && (
+            <>
+              <Link to="/dashboard/cart">
+                <button className="btn btn-sm">
+                  <IoCartOutline />
+                  <div className="badge badge-secondary">+{cart.length}</div>
+                </button>
+              </Link>
+              <a className="btn-xs ml-2 btn-outline btn">
+                User: {user?.displayName}
+              </a>
+            </>
+          )}
         </div>
       </div>
     </div>

@@ -1,168 +1,143 @@
-import { useEffect, useRef, useState } from "react";
-import {
-  loadCaptchaEnginge,
-  LoadCanvasTemplate,
-  LoadCanvasTemplateNoReload,
-  validateCaptcha,
-} from "react-simple-captcha";
+import { useContext } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import Swal from "sweetalert2";
+import { FaGoogle } from "react-icons/fa";
+import { FaGithub } from "react-icons/fa";
+import { FaFacebookSquare } from "react-icons/fa";
+import { AuthContext } from "../../provides/AuthProvide";
+import useAxiosPublic from "../../hooks/useAxiosPublic";
 
 const Login = () => {
-  useEffect(() => {
-    loadCaptchaEnginge(6);
-  }, []);
-  const [disabled, setDisabled] = useState(true);
+  const { createUser, signIn, googleLogin, githubLogin } =
+    useContext(AuthContext);
+
+  const navigate = useNavigate();
+  const location = useLocation();
+  const axiosPublic = useAxiosPublic();
+  const from = location.state?.from?.pathname || "/";
   const handleLogin = (e) => {
     e.preventDefault();
     const form = e.target;
-    const email = form.email.value;
-    const password = form.password.value;
-    console.log(email, password);
+    const email = e.target.email.value;
+    const password = e.target.password.value;
+    signIn(email, password)
+      .then((res) => {
+        const loggedInUser = res.user;
+        Swal.fire("Login Successful");
+        form.reset();
+        navigate("/");
+      })
+      .catch((err) => {
+        Swal.fire("Login failed. Recheck yout email and password");
+      });
   };
 
-  const captchaRef = useRef(null);
-
-  const handleValidadeCaptcha = () => {
-    const useCaptchaValue = captchaRef.current.value;
-    // console.log(useCaptchaValue);
-    if (validateCaptcha(useCaptchaValue)) {
-      setDisabled(false);
-    } else {
-      setDisabled(true);
-    }
-  };
-  signIn(email, password)
-    .then((res) => {
-      const loggedInUser = res.user;
-      const user = { email };
-      // get access token
-      axios
-        .post(`${server_url}/jwt`, user, { withCredentials: true })
-        .then((data) => {
-          // console.log(data.data);
+  // login with google:
+  const handleGoogleLogin = () => {
+    googleLogin()
+      .then((res) => {
+        console.log("google user:", res.user);
+        const userInfo = {
+          email: res.user.email,
+          name: res.user.displayName,
+        };
+        console.log("google user send to db", userInfo);
+        axiosPublic.post("/users", userInfo).then((res) => {
+          console.log(res.data);
+          navigate("/");
         });
-      // console.log("Logged in user : ", res.user);
-      Swal.fire("Login Successful");
-      form.reset();
-    })
-    .catch((err) => {
-      // console.log("Error in logging in : ", err.message);
-      Swal.fire("Login failed. Recheck yout email and password");
-    });
+        Swal.fire("Google Login Completed");
+      })
+      .catch((err) => {
+        // console.log("Google login error: ", err.message);
+        Swal.fire("Google Login Failed");
+        return;
+      });
+  };
+  // login with github:
+  const handleGithubLogin = () => {
+    githubLogin()
+      .then((res) => {
+        // console.log("Google Login Done, User", res.user);
+        Swal.fire("Github Login Completed");
+      })
+      .catch((err) => {
+        console.log("github login error: ", err.message);
+        Swal.fire("Github Login Failed");
+        return;
+      });
+  };
 
   return (
-    <div>
-      <section className="bg-gray-50 dark:bg-gray-900">
-        <div className="flex flex-col items-center justify-center px-6 py-8 mx-auto md:h-screen lg:py-0">
-          <div className="w-full bg-white rounded-lg shadow dark:border md:mt-0 sm:max-w-md xl:p-0 dark:bg-gray-800 dark:border-gray-700">
-            <div className="p-6 space-y-4 md:space-y-6 sm:p-8">
-              <h1 className="text-xl font-bold leading-tight tracking-tight text-gray-900 md:text-2xl dark:text-white">
-                Sign in to your account
-              </h1>
-              <form
-                onSubmit={handleLogin}
-                className="space-y-4 md:space-y-6"
-                action="#"
-              >
-                <div>
-                  <label
-                    for="email"
-                    className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-                  >
-                    Your email
-                  </label>
-                  <input
-                    type="email"
-                    name="email"
-                    id="email"
-                    className="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                    placeholder="name@company.com"
-                    required=""
-                  />
-                </div>
-                <div>
-                  <label
-                    for="password"
-                    className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-                  >
-                    Password
-                  </label>
-                  <input
-                    type="password"
-                    name="password"
-                    id="password"
-                    placeholder="••••••••"
-                    className="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                    required=""
-                  />
-                </div>
-                <div>
-                  <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                    <LoadCanvasTemplate />
-                  </label>
-                  <input
-                    type="text"
-                    name="captcha"
-                    id="captcha"
-                    ref={captchaRef}
-                    className="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                    placeholder="Type the text above"
-                    required=""
-                  />
-                  <button
-                    onClick={handleValidadeCaptcha}
-                    className="btn btn-xs mt-2"
-                  >
-                    Validate
-                  </button>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-start">
-                    <div className="flex items-center h-5">
-                      <input
-                        id="remember"
-                        aria-describedby="remember"
-                        type="checkbox"
-                        className="w-4 h-4 border border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-primary-300 dark:bg-gray-700 dark:border-gray-600 dark:focus:ring-primary-600 dark:ring-offset-gray-800"
-                        required=""
-                      />
-                    </div>
-                    <div className="ml-3 text-sm">
-                      <label
-                        for="remember"
-                        className="text-gray-500 dark:text-gray-300"
-                      >
-                        Remember me
-                      </label>
-                    </div>
-                  </div>
-                  <a
-                    href="#"
-                    className="text-sm font-medium text-primary-600 hover:underline dark:text-primary-500"
-                  >
-                    Forgot password?
-                  </a>
-                </div>
-                <button
-                  type="submit"
-                  disabled={disabled}
-                  className="w-full text-white bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800"
-                >
-                  Sign in
-                </button>
-                <p className="text-sm font-light text-gray-500 dark:text-gray-400">
-                  Don’t have an account yet?{" "}
-                  <a
-                    href="#"
-                    className="font-medium text-primary-600 hover:underline dark:text-primary-500"
-                  >
-                    Sign up
-                  </a>
+    <div className="">
+      <div className="hero  min-h-screen ">
+        <div className="flex rounded-2xl flex-col lg:flex-row  shadow-lg shadow-blue-900">
+          <div className="card shrink-0 w-full max-w-sm shadow-2xl bg-base-100 rounded-none rounded-r-2xl">
+            <form
+              onSubmit={handleLogin}
+              className="card-body bg-gradient-to-tl from-red to-[#830202e4] w-full"
+            >
+              <div className="form-control mb-6">
+                <p className="text-xl text-gray-200 font-semibold mb-2 px-4">
+                  Sign In To StudySync
                 </p>
-              </form>
-            </div>
+                <p className="text-sm text-gray-500 mb-8 px-4">
+                  Dont have an account?{" "}
+                  <Link to="/register">
+                    <span className="font-semibold">Register</span>
+                  </Link>
+                </p>
+
+                <input
+                  name="email"
+                  type="email"
+                  placeholder="Email"
+                  className="input"
+                  required
+                />
+              </div>
+              <div className="form-control">
+                <input
+                  name="password"
+                  type="password"
+                  placeholder="Password"
+                  className="input"
+                  required
+                />
+              </div>
+              <div className="form-control mt-6">
+                <input
+                  type="submit"
+                  value="Login"
+                  className="btn btn-success text-white"
+                />
+              </div>
+              <p className="text-center my-2 rob text-lg font-semibold text-gray-400">
+                -OR-
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleGoogleLogin}
+                  className="btn border-none w-52 btn-info"
+                >
+                  <FaGoogle /> <span className="">Google</span>
+                </button>
+                <button
+                  onClick={handleGithubLogin}
+                  className="btn border-none btn-square bg-gray-300"
+                >
+                  <FaGithub />
+                </button>
+                <button className="btn border-none btn-square btn-secondary">
+                  <FaFacebookSquare />
+                </button>
+
+                <p className="mt-24"></p>
+              </div>
+            </form>
           </div>
         </div>
-      </section>
+      </div>
     </div>
   );
 };
